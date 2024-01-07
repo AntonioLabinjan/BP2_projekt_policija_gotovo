@@ -56,7 +56,7 @@ END;
 DELIMITER ;
 
 # Napiši upit koji će izlistati sve brojeve telefona i informacije o tim osobama, ali samo ako te osobe nisu policijski službenici
-/*SELECT
+/* SELECT
     Telefon,
     InformacijeOOsobiPoTelefonu(Telefon) AS OsobaInfo
 FROM Osoba
