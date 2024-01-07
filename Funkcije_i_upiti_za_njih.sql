@@ -536,7 +536,7 @@ DELIMITER ;
 
 SELECT Avg_Slucaj_Osoba_Odjel(5);
 
-#Koristeći ovu funkciju napiši upit za pronalaženje odjela s ispodprosječnim brojem slučajeva po osobi
+/*#Koristeći ovu funkciju napiši upit za pronalaženje odjela s ispodprosječnim brojem slučajeva po osobi
 SELECT naziv AS Nazivi_ispodprosječnih_odjela
 FROM Odjeli
 WHERE Avg_Slucaj_Osoba_Odjel(id) < 
@@ -548,3 +548,5 @@ SELECT id, naziv
 FROM Odjeli
 WHERE Avg_Slucaj_Osoba_Odjel(id) >
     (SELECT AVG(Avg_Slucaj_Osoba_Odjel(id)) FROM Odjeli);
+
+*/
