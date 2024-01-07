@@ -133,7 +133,7 @@ CREATE TABLE Slucaj (
     naziv VARCHAR(255) NOT NULL,
     opis TEXT,
     pocetak DATETIME NOT NULL,
-    zavrsetak DATETIME NOT NULL,
+    zavrsetak DATETIME,
     status VARCHAR(20),
     id_pocinitelj INT,
     id_izvjestitelj INT,
