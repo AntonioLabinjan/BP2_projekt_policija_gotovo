@@ -24,7 +24,8 @@ DELIMITER ;
 SELECT KDInfo('Ubojstvo');
 
 # Napiši upit koji će koristeći ovu funkciju izlistati sva kaznena djela koja su se dogodila u 2023. godini (ili nekoj drugoj) i njihov broj pojavljivanja
-/*SELECT
+/*
+    SELECT
     KDInfo(KD.Naziv) AS KaznjivoDjeloInfo,
     COUNT(KS.id_kaznjivo_djelo) AS BrojPojavljivanja
 FROM Kaznjiva_Djela_u_Slucaju KS
@@ -56,7 +57,8 @@ END;
 DELIMITER ;
 
 # Napiši upit koji će izlistati sve brojeve telefona i informacije o tim osobama, ali samo ako te osobe nisu policijski službenici
-/* SELECT
+/* 
+    SELECT
     Telefon,
     InformacijeOOsobiPoTelefonu(Telefon) AS OsobaInfo
 FROM Osoba
