@@ -1,3 +1,294 @@
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novo_Podrucje_Uprave(IN p_naziv VARCHAR(255))
+BEGIN
+    INSERT INTO Podrucje_uprave (naziv) VALUES (p_naziv);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za unos novog mjesta
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novo_Mjesto(
+    IN p_naziv VARCHAR(255),
+    IN p_id_podrucje_uprave INT
+)
+BEGIN
+    INSERT INTO Mjesto (naziv, id_podrucje_uprave) VALUES (p_naziv, p_id_podrucje_uprave);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za unos nove zgrade
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novu_Zgradu(
+    IN p_adresa VARCHAR(255),
+    IN p_vrsta_zgrade VARCHAR(30),
+    IN p_id_mjesto INT
+)
+BEGIN
+    INSERT INTO Zgrada (adresa, vrsta_zgrade, id_mjesto) VALUES (p_adresa, p_vrsta_zgrade, p_id_mjesto);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za unos novog radnog mjesta
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novo_Radno_Mjesto(
+    IN p_vrsta VARCHAR(255),
+    IN p_dodatne_informacije TEXT
+)
+BEGIN
+    INSERT INTO Radno_mjesto (vrsta, dodatne_informacije) VALUES (p_vrsta, p_dodatne_informacije);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za unos novog odjela
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novi_Odjel(
+    IN p_naziv VARCHAR(255),
+    IN p_opis TEXT
+)
+BEGIN
+    INSERT INTO Odjeli (naziv, opis) VALUES (p_naziv, p_opis);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za unos nove osobe
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novu_Osobu(
+    IN p_ime_prezime VARCHAR(255),
+    IN p_datum_rodenja DATE,
+    IN p_oib CHAR(11),
+    IN p_spol VARCHAR(10),
+    IN p_adresa VARCHAR(255),
+    IN p_fotografija BLOB,
+    IN p_telefon VARCHAR(20),
+    IN p_email VARCHAR(255)
+)
+BEGIN
+    INSERT INTO Osoba (ime_prezime, datum_rodenja, oib, spol, adresa, fotografija, telefon, email)
+    VALUES (p_ime_prezime, p_datum_rodenja, p_oib, p_spol, p_adresa, p_fotografija, p_telefon, p_email);
+END //
+
+DELIMITER ;
+
+# Procedura za unos novog zaposlenika
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novog_Zaposlenika(
+    IN p_datum_zaposlenja DATETIME,
+    IN p_id_nadređeni INT,
+    IN p_id_radno_mjesto INT,
+    IN p_id_odjel INT,
+    IN p_id_zgrada INT,
+    IN p_id_mjesto INT,
+    IN p_id_osoba INT
+)
+BEGIN
+    INSERT INTO Zaposlenik (datum_zaposlenja, id_nadređeni, id_radno_mjesto, id_odjel, id_zgrada, id_mjesto, id_osoba)
+    VALUES (p_datum_zaposlenja, p_id_nadređeni, p_id_radno_mjesto, p_id_odjel, p_id_zgrada, p_id_mjesto, p_id_osoba);
+END //
+
+DELIMITER ;
+
+# Procedura za unos novog vozila
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novo_Vozilo(
+    IN p_marka VARCHAR(255),
+    IN p_model VARCHAR(255),
+    IN p_registracija VARCHAR(20),
+    IN p_godina_proizvodnje INT,
+    IN p_tip_vozila INT, -- 1 za službeno, 0 za privatno
+    IN p_id_vlasnik INT
+)
+BEGIN
+    DECLARE v_vlasnik VARCHAR(255);
+    
+    IF p_tip_vozila = 1 THEN
+        SET v_vlasnik = 'Ministarstvo unutarnjih poslova';
+    ELSE
+        -- Ako nije službeno vozilo, koristimo predani ID vlasnika
+        SELECT ime_prezime INTO v_vlasnik FROM Osoba WHERE id = p_id_vlasnik;
+    END IF;
+    
+    INSERT INTO Vozilo (marka, model, registracija, godina_proizvodnje, sluzbeno_vozilo, id_vlasnik)
+    VALUES (p_marka, p_model, p_registracija, p_godina_proizvodnje, p_tip_vozila, v_vlasnik);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje novog predmeta
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novi_Predmet(
+    IN p_naziv VARCHAR(255),
+    IN p_id_mjesto_pronalaska INT
+)
+BEGIN
+    -- Unos novog predmeta
+    INSERT INTO Predmet (naziv, id_mjesto_pronalaska)
+    VALUES (p_naziv, p_id_mjesto_pronalaska);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje novog kaznjivog djela u bazu
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novo_Kaznjivo_Djelo(
+    IN p_naziv VARCHAR(255),
+    IN p_opis TEXT,
+    IN p_predvidena_kazna INT
+)
+BEGIN
+    -- Unos novog kaznjivog djela
+    INSERT INTO Kaznjiva_djela (naziv, opis, predvidena_kazna)
+    VALUES (p_naziv, p_opis, p_predvidena_kazna);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje novog psa
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novog_Psa(
+    IN p_id_trener INTEGER,
+    IN p_oznaka VARCHAR(255),
+    IN p_godina_rođenja INTEGER,
+    IN p_status VARCHAR(255),
+    IN p_id_kaznjivo_djelo INTEGER
+)
+BEGIN
+    -- Unos novog psa
+    INSERT INTO Pas (id_trener, oznaka, godina_rođenja, status, id_kaznjivo_djelo)
+    VALUES (p_id_trener, p_oznaka, p_godina_rođenja, p_status, p_id_kaznjivo_djelo);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje novog slučaja, ali neka se ukupna vrijednost zapljena i dalje računa automatski preko trigera
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Novi_Slucaj(
+    IN p_naziv VARCHAR(255),
+    IN p_opis TEXT,
+    IN p_pocetak DATETIME,
+    IN p_zavrsetak DATETIME,
+    IN p_status VARCHAR(20),
+    IN p_id_pocinitelj INT,
+    IN p_id_izvjestitelj INT,
+    IN p_id_voditelj INT,
+    IN p_id_dokaz INT,
+    IN p_id_pas INT,
+    IN p_id_svjedok INT
+)
+BEGIN
+    -- Unos novog slučaja
+    INSERT INTO Slucaj (naziv, opis, pocetak, zavrsetak, status, id_pocinitelj, id_izvjestitelj, id_voditelj, id_dokaz, id_pas, id_svjedok)
+    VALUES (p_naziv, p_opis, p_pocetak, p_zavrsetak, p_status, p_id_pocinitelj, p_id_izvjestitelj, p_id_voditelj, p_id_dokaz, p_id_pas, p_id_svjedok);
+END //
+
+DELIMITER ;
+
+# Napravi proceduru koja će dodati novi događaj
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_događaj_u_evidenciju(
+    IN p_slucaj_id INT,
+    IN p_opis_dogadaja TEXT,
+    IN p_datum_vrijeme DATETIME,
+    IN p_mjesto_id INT
+)
+BEGIN
+    INSERT INTO Evidencija_dogadaja (id_slucaj, opis_dogadaja, datum_vrijeme, id_mjesto)
+    VALUES (p_slucaj_id, p_opis_dogadaja, p_datum_vrijeme, p_mjesto_id);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru koja će dodavati kažnjiva djela u slučaju
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Kaznjivo_Djelo_U_Slucaju(
+    IN p_slucaj_id INT,
+    IN p_kaznjivo_djelo_id INT
+)
+BEGIN
+    INSERT INTO Kaznjiva_djela_u_slucaju (id_slucaj, id_kaznjivo_djelo)
+    VALUES (p_slucaj_id, p_kaznjivo_djelo_id);
+END //
+
+DELIMITER ;
+
+
+DELIMITER //
+
+# Napiši proceduru za dodavanje izvještaja
+CREATE PROCEDURE Dodaj_Izvjestaj(
+    IN p_naslov VARCHAR(255),
+    IN p_sadrzaj TEXT,
+    IN p_autor_id INT,
+    IN p_slucaj_id INT
+)
+BEGIN
+    INSERT INTO Izvjestaji (naslov, sadrzaj, id_autor, id_slucaj)
+    VALUES (p_naslov, p_sadrzaj, p_autor_id, p_slucaj_id);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje zapljena
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Zapljene(
+    IN p_opis TEXT,
+    IN p_slucaj_id INT,
+    IN p_predmet_id INT,
+    IN p_vrijednost NUMERIC(5,2)
+)
+BEGIN
+    INSERT INTO Zapljene (opis, id_slucaj, id_predmet, Vrijednost)
+    VALUES (p_opis, p_slucaj_id, p_predmet_id, p_vrijednost);
+END //
+
+DELIMITER ;
+
+
+# Napiši proceduru za dodavanje sredstva utvrđivanja istine
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Sredstvo_Utvrđivanja_Istine(
+    IN p_naziv VARCHAR(100)
+)
+BEGIN
+    INSERT INTO Sredstvo_utvrdivanja_istine (naziv)
+    VALUES (p_naziv);
+END //
+
+DELIMITER ;
+
+# Napiši proceduru za dodavanje SUI slučaj
+DELIMITER //
+
+CREATE PROCEDURE Dodaj_Sui_Slucaj(
+    IN p_id_sui INT,
+    IN p_id_slucaj INT
+)
+BEGIN
+    INSERT INTO Sui_slucaj (id_sui, id_slucaj)
+    VALUES (p_id_sui, p_id_slucaj);
+END //
+
+DELIMITER ;
 # Procedura za unos novog vozila; ukoliko je vozilo službeno, ono će imati id_vlasnik koji će predstavljati službenika koji najviše koristi vozilo, ali postaviti će se napomena da je vlasnik MUP
 
 SELECT * FROM vozilo;
