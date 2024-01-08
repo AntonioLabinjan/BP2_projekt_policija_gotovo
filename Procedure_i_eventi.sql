@@ -398,6 +398,26 @@ DELIMITER ;
 SELECT * FROM Pas;
 CALL Godisnje_nagrađivanje_pasa();
 
+# Napiši sličnu proceduru za godišnje nagrađivanje zaposlenika
+DELIMITER //
+CREATE PROCEDURE Godisnje_nagrađivanje_zaposlenika()
+BEGIN
+    CREATE TEMPORARY TABLE IF NOT EXISTS Temp_Zaposlenici (id_zaposlenik INT, broj_rijesenih_slucajeva INT);
+
+    INSERT INTO Temp_Zaposlenici (id_zaposlenik, broj_rijesenih_slucajeva)
+    SELECT id_voditelj, COUNT(*) AS broj_rijesenih_slucajeva
+    FROM Slucaj
+    WHERE status = 'riješen'
+    GROUP BY id_voditelj;
+
+    UPDATE Zaposlenik
+    SET Status = 'nagrađeni zaposlenik'
+    WHERE id IN (SELECT id_zaposlenik FROM Temp_Zaposlenici WHERE broj_rijesenih_slucajeva > 2);
+
+    DROP TEMPORARY TABLE IF EXISTS Temp_Zaposlenici;
+END //
+DELIMITER ;
+
 # Napiši proceduru koja će generirati izvještaje o slučajevima u zadnjih 20 dana (ovaj broj se može prilagođavati)
 DELIMITER //
 CREATE PROCEDURE IzlistajSlucajeveZaPosljednjih20Dana()
