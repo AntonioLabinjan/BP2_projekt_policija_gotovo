@@ -100,7 +100,7 @@ END //
 
 DELIMITER ;
 */
-# Procedura za unos novog vozila
+/* Procedura za unos novog vozila
 DELIMITER //
 
 CREATE PROCEDURE Dodaj_Novo_Vozilo(
@@ -290,6 +290,7 @@ BEGIN
 END //
 
 DELIMITER ;
+*/
 */
 # Procedura za unos novog vozila; ukoliko je vozilo službeno, ono će imati id_vlasnik koji će predstavljati službenika koji najviše koristi vozilo, ali postaviti će se napomena da je vlasnik MUP
 
