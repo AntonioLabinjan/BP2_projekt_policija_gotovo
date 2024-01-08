@@ -182,26 +182,33 @@ DELIMITER ;
 
 
 # Triger koji premješta završene slučajeve iz tablice slučaj u tablicu arhiva # PRETVORENO JE U PROCEDURU JER JE TO JAKO VAŽAN DIO POLICIJSKOG RADA I NE ŽELIMO DA SE ODRAĐUJE AUTOMATSKI
--- Privremeno ukloni vanjske ključeve
+# Privremeno uklonimo vanjske ključeve
 ALTER TABLE Arhiva DROP FOREIGN KEY arhiva_ibfk_1;
 
--- Izbrisi i premjesti u arhivu
 DELIMITER //
 
-CREATE PROCEDURE OznačiSlucajIRijesi(IN slucaj_id INT)
+CREATE PROCEDURE Oznaci_Slucaj_Arhiva(IN p_slucaj_id INT)
 BEGIN
-    -- Izbrisi iz Slucaj i umetni u Arhiva
-    INSERT INTO Arhiva(id_slucaj) VALUES (slucaj_id);
-    DELETE FROM Slucaj WHERE id = slucaj_id;
+    DECLARE slucaj_status VARCHAR(20);
+
+    SELECT status INTO slucaj_status
+    FROM Slucaj
+    WHERE id = p_slucaj_id;
+
+    IF slucaj_status IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Slučaj s navedenim ID-om ne postoji.';
+    ELSEIF slucaj_status <> 'riješen' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Slučaj nije riješen i ne može biti premješten u arhivu.';
+    ELSE
+        # Premjesti slučaj iz Slucaj u Arhiva i obrišemo ga iz slucaj
+        INSERT INTO Arhiva (id_slucaj) VALUES (slucaj_id);
+        DELETE FROM Slucaj WHERE id = slucaj_id;
+    END IF;
 END;
 
 //
 
 DELIMITER ;
-
--- Vrati vanjski ključ
-ALTER TABLE Arhiva ADD CONSTRAINT arhiva_ibfk_1 FOREIGN KEY (id_slucaj) REFERENCES Slucaj(id);
-
 
 # Provjera da osoba nije nadređena sama sebi
 DELIMITER //
@@ -232,7 +239,7 @@ END;
 //
 DELIMITER ;
 
-
+# Ako postavimo psu drugu godinu rođenja i preko nje ispada da je stariji od 10 godina, onda ga časno umirovimo
 DELIMITER //
 
 CREATE TRIGGER bu_pas
