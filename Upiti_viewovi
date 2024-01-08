@@ -4,24 +4,24 @@
 -- Ispiši prosječan broj godina osoba koje su prijavile digitalno nasilje. 
 
 
-SELECT AVG(YEAR(slucaj.pocetak)-YEAR(osoba.datum_rodenja)) AS prosjecan_broj_godina
-FROM slucaj INNER JOIN osoba ON slucaj.id_izvjestitelj=osoba.id
-WHERE slucaj.naziv LIKE '%digitalno nasilje%';
+SELECT AVG(YEAR(S.pocetak)-YEAR(O.datum_rodenja)) AS prosjecan_broj_godina
+FROM slucaj S INNER JOIN osoba O ON S.id_izvjestitelj=O.id
+WHERE S.naziv LIKE '%digitalno nasilje%';
 
 -- Prikaži osobu čiji je nestanak posljednji prijavljen
 
-SELECT osoba.*
-FROM osoba INNER JOIN slucaj ON osoba.id=slucaj.id_ostecenik
-WHERE slucaj.naziv LIKE '%nestala%'
-ORDER BY slucaj.pocetak DESC
+SELECT O.*
+FROM osoba O INNER JOIN slucaj S ON O.id=S.id_ostecenik
+WHERE S.naziv LIKE '%nestala%'
+ORDER BY S.pocetak DESC
 LIMIT 1;
 
 -- Prikaži najčešću vrstu kažnjivog djela
 
-SELECT kaznjiva_djela.*
-FROM kaznjiva_djela KD INNER JOIN kaznjiva_djela_u_slucaju KS 
-ON KS.id_kaznjivo_djelo = KD.id
-GROUP BY kaznjiva_djela.id
+SELECT KD.*
+FROM kaznjiva_djela KD INNER JOIN kaznjiva_djela_u_slucaju KDS 
+ON KDS.id_kaznjivo_djelo = KD.id
+GROUP BY KD.id
 ORDER BY COUNT(*)
 LIMIT 1;
 
@@ -44,93 +44,94 @@ WHERE O.Ime_Prezime = 'Ime Prezime';
 SELECT DISTINCT O.Ime_Prezime
 FROM Osoba O
 JOIN Slucaj S ON O.Id = S.id_pocinitelj
-JOIN Kaznjiva_djela_u_slucaju	KD ON S.Id = KD.id_slucaj
-JOIN Kaznjiva_djela	K ON KD.id_kaznjivo_djelo = K.id
-WHERE K.Naziv = 'Naziv kaznenog djela';
+JOIN Kaznjiva_djela_u_slucaju	KDS ON S.Id = KDS.id_slucaj
+JOIN Kaznjiva_djela	KD ON KDS.id_kaznjivo_djelo = KD.id
+WHERE KD.Naziv = 'Naziv kaznjivog djela';
 
 # Pronađimo sve slučajeve koji sadrže KD i nisu riješeni
-SELECT Slucaj.Naziv, Kaznjiva_djela.Naziv AS KaznjivoDjelo
-FROM Slucaj
-INNER JOIN Kaznjiva_djela_u_slucaju	ON Slucaj.ID = Kaznjiva_djela_u_slucaju.id_slucaj
-INNER JOIN Kaznjiva_djela ON 
-Kaznjiva_djela_u_slucaju.id_kaznjivo_djelo= Kaznjiva_djela.id
-WHERE Slucaj.Status = 'Aktivan';
+SELECT S.Naziv, KD.Naziv AS kaznjivo_djelo
+FROM Slucaj S
+INNER JOIN Kaznjiva_djela_u_slucaju KDS	ON S.id = KDS.id_slucaj
+INNER JOIN Kaznjiva_djela KD ON 
+KDS.id_kaznjivo_djelo= KD.id
+WHERE S.Status = 'Aktivan';
 
 # Izračunajmo iznos zapljene za svaki pojedini slučaj
-SELECT Slucaj.ID, Slucaj.Naziv, SUM(Zapljene.Vrijednost) AS UkupnaVrijednostZapljena
-FROM Slucaj
-LEFT JOIN Zapljene ON Slucaj.ID = Zapljene.id_slucaj
-GROUP BY Slucaj.ID, Slucaj.Naziv;
+SELECT S.id, S.Naziv, SUM(ZA.Vrijednost) AS ukupna_vrijednost_zapljena
+FROM Slucaj S
+LEFT JOIN Zapljene ZA ON S.id = ZA.id_slucaj
+GROUP BY S.id, S.Naziv;
 
-# Pronađi prosječnu vrijednost zapljene za pojedina kaznena djela
-SELECT KD.Naziv AS VrstaKaznenogDjela, AVG(Z.Vrijednost) AS ProsječnaVrijednostZapljene
-FROM Kaznjiva_Djela_u_Slucaju KS
-JOIN Kaznjiva_Djela KD ON KS.id_kaznjivo_djelo= KD.Id
-JOIN Zapljene Z ON KS.id_slucaj	= Z.id_slucaj
-GROUP BY KD.Naziv;
+# Pronađi prosječnu vrijednost zapljene za pojedina kaznjivaa djela
+SELECT KD.Naziv AS vrsta_kaznjivog_djela, AVG(ZA.Vrijednost) AS prosjecna_vrijednost_zapljene
+FROM Kaznjiva_djela_u_slucaju KDS
+JOIN Kaznjiva_djela KD ON KS.id_kaznjivo_djelo= KD.Id
+JOIN Zapljene ZA ON KDS.id_slucaj	= ZA.id_slucaj
+GROUP BY KD.naziv;
 
 # Pronađi sve odjele i broj zaposlenika na njima
-SELECT O.Naziv AS NazivOdjela, COUNT(Z.Id) AS BrojZaposlenika
+SELECT O.Naziv AS naziv_odjela, COUNT(Z.Id) AS broj_zaposelnika
 FROM Zaposlenik Z
 JOIN Odjeli O ON Z.id_odjel	 = O.Id
 GROUP BY O.id, O.Naziv;
 
 # Pronađi ukupnu vrijednost zapljena po odjelu i sortiraj ih po vrijednosti silazno
-SELECT Z.id_odjel, SUM(ZP.Vrijednost) AS UkupnaVrijednostZapljena
+SELECT Z.id_odjel, SUM(ZA.vrijednost) AS ukupna_vrijednost_zapljena
 FROM Slucaj S
-JOIN Zapljene ZP ON S.Id = ZP.id_slucaj
+JOIN Zapljene ZA ON S.Id = ZA.id_slucaj
 JOIN Zaposlenik Z ON S.id_voditelj= Z.Id
 GROUP BY Z.id_odjel
-ORDER BY UkupnaVrijednostZapljena DESC;
+ORDER BY ukupna_vrijednost_zapljena DESC;
 
 
 
 # Pronađi osobu koja mora odslužiti najveću ukupnu zatvorsku kaznu
-SELECT O.Id, O.Ime_Prezime, SUM(KD.Predvidena_kazna) AS Ukupna_kazna
+SELECT O.Id, O.Ime_Prezime, SUM(KD.Predvidena_kazna) AS ukupna_kazna
 FROM Osoba O
 INNER JOIN Slucaj S ON O.Id = S.id_pocinitelj
-INNER JOIN Kaznjiva_Djela_u_Slucaju KS ON S.Id = KS.id_slucaj
-INNER JOIN Kaznjiva_Djela KD ON KS.id_kaznjivo_djelo= KD.ID
-WHERE KD.Predvidena_kazna IS NOT NULL
-GROUP BY O.Id, O.Ime_Prezime
-ORDER BY Ukupna_kazna DESC
+INNER JOIN Kaznjiva_Djela_u_Slucaju KDS ON S.Id = KDS.id_slucaj
+INNER JOIN Kaznjiva_Djela KD ON KDS.id_kaznjivo_djelo= KD.ID
+WHERE KD.predvidena_kazna IS NOT NULL
+GROUP BY O.id, O.ime_prezime
+ORDER BY ukupna_kazna DESC
 LIMIT 1;
 
 # Prikaži sva vozila i u koliko slučajeva su se oni upisali
-SELECT vozilo.*, COUNT(Slucaj.id) AS broj_slucajeva
-FROM Vozilo LEFT OUTER JOIN Osoba ON Vozilo.id_vlasnik = Osoba.id
-INNER JOIN Slucaj ON Osoba.id = Slucaj.id_pocinitelj
-GROUP BY Vozilo.id;
+SELECT V.*, COUNT(S.id) AS broj_slucajeva
+FROM Vozilo V LEFT OUTER JOIN Osoba O ON V.id_vlasnik = O.id
+INNER JOIN Slucaj S ON O.id = S.id_pocinitelj
+GROUP BY V.id;
 
 # Mjesto s najviše slučajeva
-SELECT Mjesto.*, COUNT(Evidencija_dogadaja.id) AS kol_slucajeva
-FROM Mjesto INNER JOIN Evidencija_dogadaja ON  Mjesto.id = Evidencija_dogadaja.id_mjesto
-GROUP BY Mjesto.id 
-ORDER BY kol_slucajeva DESC 
+SELECT M.*, COUNT(ED.id) AS broj_slucajeva
+FROM Mjesto M INNER JOIN Evidencija_dogadaja ED ON  M.id = ED.id_mjesto
+GROUP BY M.id 
+ORDER BY broj_slucajeva DESC 
 LIMIT 1;
 
 # Mjesto s najmanje slučajeva
-SELECT Mjesto.*, COUNT(Evidencija_dogadaja.id) AS kol_slucajeva
-FROM Mjesto INNER JOIN Evidencija_dogadaja ON  Mjesto.id = Evidencija_dogadaja.id_mjesto
-GROUP BY Mjesto.id 
-ORDER BY kol_slucajeva ASC 
+SELECT M.*, COUNT(ED.id) AS broj_slucajeva
+FROM Mjesto M INNER JOIN Evidencija_dogadaja ED ON  M.id = ED.id_mjesto
+GROUP BY M.id 
+ORDER BY broj_slucajeva ASC 
 LIMIT 1;
+
 # Pronađi policijskog službenika koji je vodio najviše slučajeva
 SELECT
-    z.Id AS Zaposlenik_Id,
-    o.Ime_Prezime AS Ime_Prezime,
-    COUNT(s.Id) AS Broj_Slucajeva
-FROM Zaposlenik z
-JOIN Osoba o ON z.id_osoba= o.Id
-LEFT JOIN Slucaj s ON s.id_voditelj = z.Id
-GROUP BY z.Id, o.Ime_Prezime
-HAVING COUNT(s.Id) = (
-    SELECT MAX(Broj_Slucajeva)
+    Z.Id AS id_zaposlenika,
+    O.Ime_Prezime AS ime_prezime_zaposlenika,
+    COUNT(s.Id) AS broj_slucajeva
+FROM Zaposlenik Z
+JOIN Osoba O ON Z.id_osoba= O.Id
+LEFT JOIN Slucaj S ON S.id_voditelj = Z.Id
+GROUP BY Z.Id, O.Ime_Prezime
+HAVING COUNT(S.Id) = (
+    SELECT MAX(broj_slucajeva)
     FROM (
-        SELECT COUNT(Id) AS Broj_Slucajeva
-        FROM Slucaj
+        SELECT COUNT(id) AS broj_slucajeva
+        FROM S
         GROUP BY id_voditelj
-    ) AS Max_voditelj
+    ) AS max_voditelj
 );
 
 # Ispiši sva mjesta gdje nema evidentiranih kaznjivih djela u slučajevima(ili uopće nema slučajeva)
@@ -144,27 +145,28 @@ GROUP BY M.Id, M.Naziv;
 
 #########################################################################################################################################
 # POGLEDI
-# Ako je uz osumnjičenika povezano vozilo, onda se stvara materijalizirani pogled koji prati sve osumnjičenike i njihova vozila
+# Ako je uz osumnjičenika povezano vozilo, onda se stvara pogled koji prati sve osumnjičenike i njihova vozila
 CREATE VIEW osumnjicenici_vozila AS
 SELECT
-	Osoba.id AS id_osobe,
-	Osoba.ime_prezime,
-	Osoba.datum_rodenja,
-	Osoba.oib,
-	Osoba.spol,
-	Osoba.adresa,
-	Osoba.telefon,
-	Osoba.email,
-	Vozilo.id AS id_vozila,
-	Vozilo.marka,
-	Vozilo.model,
-	Vozilo.registracija,
-	Vozilo.godina_proizvodnje
-FROM Osoba
-RIGHT JOIN Vozilo ON Osoba.id = Vozilo.id_vlasnik
-INNER JOIN Slucaj ON Osoba.id = Slucaj.id_pocinitelj;
+	O.id AS id_osobe,
+	O.ime_prezime,
+	O.datum_rodenja,
+	O.oib,
+	O.spol,
+	O.adresa,
+	O.telefon,
+	O.email,
+	V.id AS id_vozila,
+	V.marka,
+	V.model,
+	V.registracija,
+	V.godina_proizvodnje
+FROM Osoba O
+RIGHT JOIN Vozilo V ON O.id = V.id_vlasnik
+INNER JOIN Slucaj S ON O.id = S.id_pocinitelj;
+
 # Pronađi sve policajce koji su vlasnici vozila koja su starija od 10 godina
-CREATE VIEW PolicajciSaStarimVozilima AS
+CREATE VIEW policijski_sluzbenici_stara_vozila AS
 SELECT O.Ime_Prezime AS Policajac, V.Marka, V.Model, V.Godina_proizvodnje
 FROM Osoba O
 JOIN Zaposlenik Z ON O.Id = Z.id_osoba
@@ -173,80 +175,80 @@ WHERE Z.id_radno_mjesto= (SELECT Id FROM Radno_mjesto WHERE Vrsta = 'Policajac')
 AND V.Godina_proizvodnje <= YEAR(NOW()) - 10;
 
 # Napravi pogled koji će pronaći sve osobe koje su počinile kazneno djelo pljačke i pri tome su koristili pištolj (to dohvati pomoću tablice predmet) i nazovi pogled "Počinitelji oružane pljačke"
-CREATE VIEW PočiniteljiOružanePljačke AS
-SELECT O.Ime_Prezime AS Počinitelj, K.Naziv AS KaznenoDjelo
+CREATE VIEW počinitelji_oružane_pljacke AS
+SELECT O.ime_prezime AS pocinitelj, K.Naziv AS kazneno_djelo
 FROM Osoba O
 JOIN Slucaj S ON O.Id = S.id_pocinitelj
-JOIN Kaznjiva_Djela_u_Slucaju KD ON S.Id = KD.id_slucaj
-JOIN Kaznjiva_Djela K ON KD.id_kaznjivo_djelo	= K.ID
-JOIN Predmet P ON S.id_dokaz= P.Id
-WHERE K.Naziv = 'Pljačka' AND P.Naziv LIKE '%pištolj%';
+JOIN Kaznjiva_Djela_u_Slucaju KDS ON S.Id = KDS.id_slucaj
+JOIN Kaznjiva_Djela KD ON KDS.id_kaznjivo_djelo	= KD.id
+JOIN Predmet P ON S.id_dokaz= P.id
+WHERE K.Naziv = 'Pljačka' AND P.naziv LIKE '%pištolj%';
 
 
 #Napravi pogled koji će izlistati sva evidentirana kaznena djela i njihov postotak pojavljivanja u slučajevima
-CREATE VIEW PostotakPojavljivanjaKaznenihDjela AS
+CREATE VIEW postotak_pojavljivanja_kaznjivih_djela AS
 SELECT
-    KD.Naziv AS 'Kazneno_Djelo',
-    COUNT(KS.id_slucaj) AS 'Broj_Slucajeva',
-    COUNT(KS.id_slucaj) / (SELECT COUNT(*) FROM Slucaj) * 100 AS 'Postotak_Pojavljivanja'
+    KD.Naziv AS 'kaznjivo_djelo',
+    COUNT(KS.id_slucaj) AS 'broj_slucajeva',
+    COUNT(KS.id_slucaj) / (SELECT COUNT(*) FROM Slucaj) * 100 AS 'postotak_pojavljivanja'
 FROM
     Kaznjiva_Djela KD
 LEFT JOIN
-    Kaznjiva_Djela_u_Slucaju KS
+    Kaznjiva_Djela_u_Slucaju KDS
 ON
-    KD.ID = KS.id_kaznjivo_djelo
+    KD.ID = KDS.id_kaznjivo_djelo
 GROUP BY
     KD.Naziv;
 
 # Napravi pogled koji će izlistati sva evidentirana sredstva utvrđivanja istine i broj slučajeva u kojima je svako od njih korišteno
-CREATE VIEW EvidentiranaSredstvaUtvrdivanjaIstine AS
-SELECT Sredstvo_utvrdivanja_istine.Naziv AS 'SredstvoUtvrdivanjaIstine',
-       COUNT(Sui_slucaj.Id_sui) AS 'BrojSlucajeva'
-FROM Sredstvo_utvrdivanja_istine
-LEFT JOIN Sui_slucaj ON Sredstvo_utvrdivanja_istine.Id = Sui_slucaj.Id_sui
-GROUP BY Sredstvo_utvrdivanja_istine.Id;
+CREATE VIEW evidentirana_sredstva_utvrdivanja_istine AS
+SELECT SUI.Naziv AS 'sredstvo_utvrdivanja_istine',
+       COUNT(SS.Id_sui) AS 'broj_slucajeva'
+FROM Sredstvo_utvrdivanja_istine SUI
+LEFT JOIN Sui_slucaj SS ON SUI.id = SS.Id_sui
+GROUP BY SUI.id;
 
 
 # Napravi pogled koji će izlistati sve slučajeve i sredstva utvrđivanja istine u njima, te izračunati trajanje svakog od slučajeva
 
-CREATE VIEW SlucajeviSortiraniPoTrajanjuISredstva AS
+CREATE VIEW slucajevi_sortirani_po_trajanju_sredstva AS
 SELECT S.*, 
-       TIMESTAMPDIFF(DAY, S.Pocetak, S.Zavrsetak) AS Trajanje_u_danima, 
-       GROUP_CONCAT(SUI.Naziv ORDER BY SUI.Naziv ASC SEPARATOR ', ') AS SredstvaUtvrdivanjaIstine
+       TIMESTAMPDIFF(DAY, S.Pocetak, S.Zavrsetak) AS trajanje_u_danima, 
+       GROUP_CONCAT(SUI.Naziv ORDER BY SUI.Naziv ASC SEPARATOR ', ') AS sredstva_utvrdivanja_istine
 FROM Slucaj S
-LEFT JOIN Sui_slucaj SUI_S ON S.ID = SUI_S.Id_slucaj
-LEFT JOIN Sredstvo_utvrdivanja_istine SUI ON SUI_S.Id_sui = SUI.ID
-GROUP BY S.ID
-ORDER BY Trajanje_u_danima DESC;
+LEFT JOIN Sui_slucaj SS ON S.ID = SS.Id_slucaj
+LEFT JOIN Sredstvo_utvrdivanja_istine SUI ON SS.Id_sui = SUI.id
+GROUP BY S.id
+ORDER BY trajanje_u_danima DESC;
 
 # Napiši pogled koji će u jednu tablicu pohraniti sve izvještaje vezane uz pojedine slučajeve
-CREATE VIEW IzvjestajiZaSlucajeve AS
-SELECT S.Naziv AS Slucaj, I.Naslov AS NaslovIzvjestaja, I.Sadrzaj AS SadržajIzvjestaja, O.Ime_Prezime AS AutorIzvjestaja
+CREATE VIEW izvjestaji_za_slucajeve AS
+SELECT S.Naziv AS Slucaj, I.Naslov AS naslov_izvjestaja, I.Sadrzaj AS sadrzaj_izvjestaja, O.Ime_Prezime AS autor_izvjestaja
 FROM Izvjestaji I
 INNER JOIN Slucaj S ON I.id_slucaj	 = S.ID
 INNER JOIN Osoba O ON I.id_autor	= O.Id;
 
 # Napravi pogled koji će izlistati sve osobe i njihove odjele. Ukoliko osoba nije policajac te nema odjel (odjel je NULL), neka se uz tu osobu napiše "Osoba nije policijski službenik"
-CREATE VIEW OsobeIOdjeli AS
-SELECT O.Ime_Prezime AS ImeOsobe,
+CREATE VIEW osobe_odjeli AS
+SELECT O.ime_prezime AS ime_osobe,
        CASE
            WHEN Z.id_radno_mjesto
            IS NOT NULL THEN OD.Naziv
            ELSE 'Osoba nije policijski službenik'
-       END AS NazivOdjela
+       END AS naziv_odjela
 FROM Osoba O
 LEFT JOIN Zaposlenik Z ON O.Id = Z.id_osoba
 LEFT JOIN Odjeli OD ON Z.id_odjel= OD.Id;
 
 
 # Napravi pogled koji će ispisati sve voditelje slučajeva, ukupan broj slučajeva koje vode, ukupan broj rješenjih slučajeva, ukupan broj nerješenih slučajeva i postotak rješenosti
-CREATE VIEW VoditeljiSlucajeviPregled AS
+CREATE VIEW voditelji_slucajevi_pregled AS
 SELECT
-    O.Ime_Prezime AS Voditelj,
-    COUNT(S.ID) AS UkupanBrojSlucajeva,
-    SUM(CASE WHEN S.Status = 'Završeno' THEN 1 ELSE 0 END) AS UkupanBrojRijesenihSlucajeva,
-    SUM(CASE WHEN S.Status = 'Aktivan' THEN 1 ELSE 0 END) AS UkupanBrojNerijesenihSlucajeva,
-    (SUM(CASE WHEN S.Status = 'Završeno' THEN 1 ELSE 0 END) / COUNT(S.ID)) * 100 AS PostotakRjesenosti
+    O.ime_prezime AS voditelj,
+    COUNT(S.ID) AS ukupan_broj_slucajeva,
+    SUM(CASE WHEN S.Status = 'riješen' THEN 1 ELSE 0 END) AS ukupan_broj_rijesenih_slucajeva,
+    SUM(CASE WHEN S.Status = 'aktivan' THEN 1 ELSE 0 END) AS ukupan_broj_nerijesenih_slucajeva,
+    (SUM(CASE WHEN S.Status = 'riješen' THEN 1 ELSE 0 END) / COUNT(S.ID)) * 100 AS postotak_rjesenosti
 FROM
     Osoba O
 LEFT JOIN
@@ -257,99 +259,99 @@ GROUP BY
 # Napravi POGLED koji će prikazivati statistiku zapljena za svaku vrstu kaznenog djela (prosjek, minimum, maksimum  (za vrijednosti) i broj predmeta)
 CREATE VIEW StatistikaZapljenaPoKaznenomDjelu AS
 SELECT
-    K.Naziv AS 'Vrsta_kaznenog_djela',
-    AVG(Z.Vrijednost) AS 'Prosječna_vrijednost_zapljena',
-    MAX(Z.Vrijednost) AS 'Najveća_vrijednost_zapljena',
-    MIN(Z.Vrijednost) AS 'Najmanja_vrijednost_zapljena',
-    COUNT(Z.ID) AS 'Broj_zapljenjenih_predmeta'
+    KD.Naziv AS 'vrsta_kaznjivog_djela',
+    AVG(Z.vrijednost) AS 'Prosječna_vrijednost_zapljena',
+    MAX(Z.vrijednost) AS 'Najveća_vrijednost_zapljena',
+    MIN(Z.vrijednost) AS 'Najmanja_vrijednost_zapljena',
+    COUNT(Z.id) AS 'Broj_zapljenjenih_predmeta'
 FROM Zapljene Z
 JOIN Slucaj S ON Z.id_slucaj	 = S.ID
-JOIN Kaznjiva_Djela_u_Slucaju KDUS ON S.ID = KDUS.id_slucaj
-JOIN Kaznjiva_Djela K ON KDUS.id_kaznjivo_djelo = K.id
-GROUP BY K.Naziv;
+JOIN Kaznjiva_Djela_u_Slucaju KDS ON S.ID = KDS.id_slucaj
+JOIN Kaznjiva_Djela KD ON KDS.id_kaznjivo_djelo = KD.id
+GROUP BY KD.Naziv;
 
 
 SELECT * From StatistikaZapljenaPoKaznenomDjelu;
 DROP VIEW StatistikaZapljenaPoKaznenomDjelu;
 
 # Napravi POGLED koji će za svaki slučaj izračunati ukupnu zatvorsku kaznu, uz ograničenje da maksimalna zakonska zatvorska kazna u RH iznosi 50 godina. Ako ukupna kazna premaši 50, postaviti će se na 50 uz odgovarajuće upozorenje
-CREATE VIEW UkupnaPredvidenaKaznaPoSlucaju AS
-SELECT S.ID AS 'SlucajID',
-       S.Naziv AS 'NazivSlucaja',
+CREATE VIEW ukupna_predvidena_kazna_po_slucaju AS
+SELECT S.ID AS 'slucaj_id',
+       S.Naziv AS 'naziv_slucaja',
        CASE
-           WHEN SUM(KD.Predvidena_kazna) > 50 THEN 50
-           ELSE SUM(KD.Predvidena_kazna)
-       END AS 'UkupnaPredvidenaKazna',
+           WHEN SUM(KD.predvidena_kazna) > 50 THEN 50
+           ELSE SUM(KD.predvidena_kazna)
+       END AS 'ukupna_predvidena_kazna',
        CASE
            WHEN SUM(KD.Predvidena_kazna) > 50 THEN 'Maksimalna zakonska zatvorska kazna iznosi 50 godina'
            ELSE NULL
        END AS 'Napomena'
 FROM Slucaj S
-LEFT JOIN Kaznjiva_Djela_u_Slucaju KDUS ON S.ID = KDUS.id_slucaj
-LEFT JOIN Kaznjiva_Djela KD ON KDUS.id_kaznjivo_djelo		= KD.ID
-GROUP BY S.ID, S.Naziv;
+LEFT JOIN Kaznjiva_djela_u_slucaju KDS ON S.ID = KDS.id_slucaj
+LEFT JOIN Kaznjiva_djela KD ON KDS.id_kaznjivo_djelo		= KD.ID
+GROUP BY S.id, S.naziv;
 
 # Napiši POGLED koji će za sve policijske službenike dohvatiti njihovu dob i godine staža (ukoliko je još aktivan, oduzimat ćemo od trenutne godine godinu zaposlenja, a ako je umirovljen, oduzimat će od godine umirovljenja godinu zaposlenja)
 # Onda dodat još stupac koji prati dali je umirovljen ili aktivan
-CREATE VIEW Pogled_Policijskih_Sluzbenika AS
+CREATE VIEW pogled_policijskih_sluzbenika AS
 SELECT
-    o.Id AS Zaposlenik_Id,
-    o.Ime_Prezime AS Ime_Prezime,
-    o.Datum_rodenja AS Datum_rodenja,
-    DATEDIFF(CURRENT_DATE, z.Datum_zaposlenja) AS Godine_Staza,
+    O.Id AS zaposlenik_id,
+    O.Ime_Prezime AS ime_prezime_osobe,
+    O.datum_rodenja AS datum_rodenja_osobe,
+    DATEDIFF(CURRENT_DATE, Z.Datum_zaposlenja) AS Godine_Staza,
     CASE
-        WHEN z.Datum_izlaska_iz_sluzbe IS NOT NULL AND z.Datum_izlaska_iz_sluzbe <= CURRENT_DATE THEN 'Da'
+        WHEN Z.datum_izlaska_iz_sluzbe IS NOT NULL AND Z.Datum_izlaska_iz_sluzbe <= CURRENT_DATE THEN 'Da'
         ELSE 'Ne'
     END AS Umirovljen
-FROM Osoba o
-INNER JOIN Zaposlenik z ON o.Id = z.id_osoba;
+FROM Osoba O
+INNER JOIN Zaposlenik Z ON O.Id = Z.id_osoba;
 
 # Napravi pogled koji će dohvaćati sve osumnjičenike, zajedno s kažnjivim djelima za koja su osumnjičeni
-CREATE VIEW Pogled_Osumnjicene_Osobe_KD AS
-SELECT DISTINCT O.Ime_Prezime, K.Naziv AS 'Naziv kaznenog djela'
+CREATE VIEW pogled_osumnjicene_osobe_ AS
+SELECT DISTINCT O.Ime_Prezime, KD.Naziv AS 'naziv_kaznjivog_djela'
 FROM Osoba O
 JOIN Slucaj S ON O.Id = S.id_pocinitelj
-JOIN Kaznjiva_djela_u_slucaju KD ON S.Id = KD.id_slucaj
-JOIN Kaznjiva_djela K ON KD.id_kaznjivo_djelo = K.id;
+JOIN Kaznjiva_djela_u_slucaju KDS ON S.Id = KD.id_slucaj
+JOIN Kaznjiva_djela K ON KD.id_kaznjivo_djelo = KD.id;
 
 # Napravi pogled koji će izlistati sve pse i broj slučajeva na kojima je svaki od njih radio. U poseban stupac dodaj broj riješenih slučajeva od onih na kojima su radili. Zatim izračunaj postotak rješenosti slučajeva za svakog psa i to dodaj u novi stupac
-CREATE VIEW Pregled_Pasa AS
+CREATE VIEW pregled_pasa AS
 SELECT
-    P.Id AS PasID,
-    P.Oznaka AS OznakaPsa,
+    PA.Id AS pas_id,
+    PA.Oznaka AS OznakaPsa,
     O.Ime_Prezime AS Vlasnik,
-    COUNT(S.Id) AS BrojSlucajeva,
-    SUM(CASE WHEN S.Status = 'Završeno' THEN 1 ELSE 0 END) AS BrojRijesenih,
-    (SUM(CASE WHEN S.Status = 'Završeno' THEN 1 ELSE 0 END) / COUNT(S.Id) * 100) AS PostotakRjesenosti
+    COUNT(S.Id) AS broj_slucajeva,
+    SUM(CASE WHEN S.Status = 'Riješen' THEN 1 ELSE 0 END) AS broj_rijesenih,
+    (SUM(CASE WHEN S.Status = 'Riješen' THEN 1 ELSE 0 END) / COUNT(S.Id) * 100) AS postotak_rijesenosti
 FROM
-    Pas AS P
-LEFT JOIN Slucaj AS S ON P.Id = S.id_pas
-LEFT JOIN Osoba AS O ON P.Id_trener = O.Id
+    Pas AS PA
+LEFT JOIN Slucaj AS S ON PA.Id = S.id_pas
+LEFT JOIN Osoba AS O ON PA.Id_trener = O.Id
 GROUP BY
     P.Id;
 
 # Nadogradi prethodni POGLED tako da pronalazi najefikasnijeg psa, s najvećim postotkom rješenosti
-CREATE VIEW NajefikasnijiPas AS
+CREATE VIEW najefikasniji_pas AS
 SELECT
-    PasID,
-    OznakaPsa,
-    Vlasnik,
-    BrojSlucajeva,
-    BrojRijesenih,
-    PostotakRjesenosti
+    pas_id,
+    oznaka_psa,
+    vlasnik,
+    broj_slucajeva,
+    broj_rijesenih,
+    postotak_rijesenosti
 FROM
-    Pregled_Pasa
+    pregled_pasa
 WHERE
-    PostotakRjesenosti = (SELECT MAX(PostotakRjesenosti) FROM Pregled_Pasa);
+    postotak_rijesenosti = (SELECT MAX(postotak_rijesenosti) FROM pregled_pasa);
 
 -- Napravi pogled koji prikazuje broj kazni zboog brze vožnje u svakom gradu u proteklih mjesec dana. Zatim pomoću upita ispiši grad
 -- u kojem je bilo najviše kazni zbog brze vožnje u proteklih mjesec dana.
 
 CREATE VIEW brza_voznja_gradovi AS
-SELECT mjesto.naziv, COUNT(*) AS broj_kazni_za_brzu_voznju
-FROM mjesto INNER JOIN evidencija_dogadaja ON mjesto.id=evidencija_dogadaja.id_mjesto INNER JOIN slucaj ON evidencija_dogadaja.id_slucaj=slucaj.id
-WHERE slucaj.naziv LIKE '%brza voznja%' AND evidencija_dogadaja.datum_vrijeme >= (NOW() - INTERVAL 1 MONTH)
-GROUP BY mjesto.naziv;
+SELECT M.naziv, COUNT(*) AS broj_kazni_za_brzu_voznju
+FROM mjesto M INNER JOIN Evidencija_dogadaja ED ON M.id=ED.id_mjesto INNER JOIN slucaj S ON ED.id_slucaj=S.id
+WHERE S.naziv LIKE '%brza voznja%' AND ED.datum_vrijeme >= (NOW() - INTERVAL 1 MONTH)
+GROUP BY M.naziv;
 
 SELECT *
 FROM brza_voznja_gradovi
@@ -360,12 +362,12 @@ LIMIT 1;
 -- Zatim napravi upit koji će prikazati osobu koja je skrivila najviše prometnih nesreća u posljednjih godinu dana.
 
 CREATE VIEW osoba_prometna_nesreca AS
-SELECT osoba.*, COUNT(*) AS broj_prometnih_nesreca
-FROM osoba
-INNER JOIN slucaj ON osoba.id = slucaj.id_pocinitelj
-INNER JOIN evidencija_dogadaja ON slucaj.id = evidencija_dogadaja.id_slucaj
-WHERE evidencija_dogadaja.datum_vrijeme >= (NOW() - INTERVAL 1 YEAR) AND slucaj.naziv LIKE '%prometna nesreca%'
-GROUP BY osoba.id
+SELECT O.*, COUNT(*) AS broj_prometnih_nesreca
+FROM osoba O
+INNER JOIN slucaj S ON O.id = S.id_pocinitelj
+INNER JOIN evidencija_dogadaja ED ON S.id = ED.id_slucaj
+WHERE ED.datum_vrijeme >= (NOW() - INTERVAL 1 YEAR) AND S.naziv LIKE '%prometna nesreca%'
+GROUP BY O.id
 HAVING broj_prometnih_nesreca > 2;
 
 
@@ -377,14 +379,15 @@ LIMIT 1;
 
 # Napravi pogled koji će pronaći sva kažnjiva djela koja su se događala u slučajevima
 # Zatim napravi upit kojim ćemo moći pronalaziti kažnjiva djela za određeno mjesto po id-ju
-CREATE VIEW Kaznjiva_Djela_Na_Mjestu AS
-SELECT ED.id_mjesto, K.Naziv, K.Opis
-FROM Kaznjiva_Djela_u_Slucaju KS
-JOIN Kaznjiva_Djela K ON KS.id_kaznjivo_djelo = K.ID
-JOIN Evidencija_Dogadaja ED ON KS.id_slucaj = ED.id_slucaj;
+CREATE VIEW kaznjiva_djela_na_mjestu AS
+SELECT ED.id_mjesto, KD.Naziv, KD.Opis
+FROM Kaznjiva_djela_u_slucaju KDS
+JOIN Kaznjiva_Djela KD ON KDS.id_kaznjivo_djelo = KD.ID
+JOIN Evidencija_Dogadaja ED ON KDS.id_slucaj = ED.id_slucaj;
 
 SELECT * FROM Kaznjiva_Djela_Na_Mjestu WHERE ED.id_mjesto = 1;
 
+#### TU SAN STA
 # Napravi pogled koji će dohvatiti sve osobe, slučajeve koje su počinili i KD u njima
 CREATE VIEW Osobe_i_KD AS
 SELECT DISTINCT O.Ime_Prezime, K.Naziv, S.id AS id_slucaj
