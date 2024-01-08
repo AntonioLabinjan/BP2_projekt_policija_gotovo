@@ -286,7 +286,7 @@ BEGIN
     DECLARE godina_danas INT;
     DECLARE godina_rodjenja INT;
     
-    SELECT Osoba.Datum_rodjenja INTO datum_rodjenja
+    SELECT Osoba.Datum_rodenja INTO datum_rodjenja
     FROM Osoba
     WHERE Osoba.Id = NEW.id_pocinitelj;
     
@@ -309,7 +309,7 @@ CREATE TRIGGER bi_vozilo_punoljetnost
 BEFORE INSERT ON Vozilo FOR EACH ROW
 BEGIN
     DECLARE vlasnik_godine INT;
-    SELECT TIMESTAMPDIFF(YEAR, (SELECT Datum_rodjenja FROM Osoba WHERE Id = NEW.id_vlasnik), CURDATE()) INTO vlasnik_godine;
+    SELECT TIMESTAMPDIFF(YEAR, (SELECT Datum_rodenja FROM Osoba WHERE Id = NEW.id_vlasnik), CURDATE()) INTO vlasnik_godine;
 
     IF vlasnik_godine < 18 THEN
         SIGNAL SQLSTATE '45000'
