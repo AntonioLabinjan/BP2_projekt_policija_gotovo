@@ -340,15 +340,15 @@ DO
 //
 
 DELIMITER ;
-    # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO POTENCIJALNO PRETVORIT U FUNKCIJU
-DELIMITER //
-CREATE PROCEDURE PretraziSlucajevePoOpisu(IN kljucnaRijec TEXT)
-BEGIN
-    SELECT * FROM Slucaj WHERE Opis LIKE CONCAT('%', kljucnaRijec, '%');
-END //
-DELIMITER ;
-SELECT opis FROM Slucaj;
-CALL PretraziSlucajevePoOpisu ('zaustavljena');
+    # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO SU SADA 2 POGLEDA I 1 UPIT
+CREATE VIEW Svi_slucajevi AS
+SELECT * FROM Slucaj;
+CREATE VIEW Filtrirani_slucajevi AS
+SELECT * FROM SviSlucajevi
+WHERE Opis LIKE CONCAT('%', kljucna_rijec, '%');
+SELECT * FROM Filtrirani_slucajevi WHERE kljucnarijec = 'neka_kljucna_rijec';
+
+
 # Napiši proceduru koja će kreirati novu privremenu tablicu u kojoj će se prikazati svi psi i broj slučajeva na kojima su radili. Zatim će dodati novi stupac tablici pas i u njega upisati "nagrađeni pas" kod svih pasa koji su radili na više od 15 slučajeva 
 DELIMITER //
 CREATE PROCEDURE Godisnje_nagrađivanje_pasa()
