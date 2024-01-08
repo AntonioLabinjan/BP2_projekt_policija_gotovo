@@ -1,11 +1,14 @@
-#Kreirajte transakciju koja, uzimajući u obzir trenutačnu aktivnost pasa, dodjeljuje psa s najmanje slučajeva novom aktivnom slučaju. Rješenje treba osigurati dosljednost podataka i minimalno opterećenje pasa.
+#Kreiramo transakciju koja, uzimajući u obzir trenutačnu aktivnost pasa, dodjeljuje psa s najmanje slučajeva novom aktivnom slučaju.
+# Imamo dosljedne podatke i psi su minimalno opterećeni.
 
-# FOR UPDATE klauzula koristi se kako bi se tijekom čitanja informacija o broju slučajeva za aktivne pse zaključali retci, spriječavajući druge transakcije da mijenjaju status pasa, primjerice umirovljenje ili dodjelu na nove slučajeve. 
-# Time se osigurava da pas s najmanje slučajeva ostane nepromijenjen tijekom trajanja transakcije, održavajući dosljednost podataka u kontekstu dodjele pasa novim slučajevima.
+# FOR UPDATE klauzula se koristi da bimo tijekom čitanja informacija o broju slučajeva za aktivne pse zaključali retke, 
+#i spriječili druge transakcije (i druge korisnike na istoj bazi) da mijenjaju status pasa, 
+#npr.umirove ga ili ga dodjele na nove slučajeve jer bi to onda narušilo cijeli koncept tega da dodijelimo psa s najmanje slučajeva na nobi. 
 
-#  U ovom zadatku koristimo izolacijski nivo "REPEATABLE READ" kako bi osigurao dosljednost podataka tijekom trajanja transakcije.
+#  Koristimo  "REPEATABLE READ" da bi osigurali dosljednost podataka tijekom trajanja transakcije.
 #  Budući da analiziramo trenutačnu aktivnost pasa i dodjelu pasa slučajevima, važno je da podaci o psima ostanu nepromijenjeni kako bi se izbjegle netočnosti
-#  u dodjeli pasa novim slučajevima. "REPEATABLE READ" sprječava čitanje prljavih podataka (dirty reads) i neponovljivih čitanja (non-repeatable reads), 
+#  u dodjeli pasa novim slučajevima. "REPEATABLE READ" sprječava čitanje prljavih podataka (dirty reads - čitamo nešto ča druga transakcija mijenja, ali ni još commitala)
+#i neponovljivih čitanja (non-repeatable reads),  (2 puta čitamo isti podatak, a on nema istu vrijednost)
 #  čime se održava konzistentnost podataka i osigurava pouzdanost u obradi podataka u okviru transakcije. */
 
 # Postavljanje izolacijskog nivoa na REPEATABLE READ
@@ -20,7 +23,7 @@ WHERE Pas.status = 'Aktivan' AND Slucaj.status = 'Aktivan'
 GROUP BY Pas.id
 FOR UPDATE;
 
--- Pronađemo psa s najmanje slučajeva
+# Pronađemo psa s najmanje slučajeva
 SELECT Pas.id
 FROM Pas
 LEFT JOIN Slucaj ON Pas.id = Slucaj.id_pas
@@ -162,6 +165,7 @@ WHERE YEAR(datum_vrijeme) = 2021;
 COMMIT;
 
 # Napravi transakciju koja će pomoću procedure dodati 20 novih kažnjivih djela
+# Ovo baš i ni pametna transakcija i maknut ćemo je iz projekta, jer ne služi ničemu...više je nastala iz znatiželje za provjerit dali funkcionira
 SET SESSION TRANSACTION ISOLATION LEVEL 
 READ COMMITTED;
 START TRANSACTION;
@@ -198,14 +202,14 @@ COMMIT;
 SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 START TRANSACTION;
 
--- Dodavanje novog stupca 'Napomena za službena vozila'
+# Dodavanje novog stupca 'Napomena za službena vozila'
 ALTER TABLE Vozilo
 ADD COLUMN napomena_službena_vozila VARCHAR(255);
 
--- Dobivanje zaključavanja za službena vozila
+# Dobivanje zaključavanja za službena vozila
 SELECT * FROM Vozilo WHERE sluzbeno_vozilo = 1 FOR UPDATE NOWAIT; -- pokušavamo zaključati retke, ali ako su već zaključani ne čekamo, nego odmah vraća grešku i prekine transakciju
 
--- Kreiranje privremene tablice Pregled_službenih_vozila
+# Kreiranje privremene tablice Pregled_službenih_vozila
 CREATE TEMPORARY TABLE IF NOT EXISTS Pregled_službenih_vozila (
     id INT,
     marka VARCHAR(255),
@@ -217,7 +221,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS Pregled_službenih_vozila (
     napomena_službena_vozila VARCHAR(255)
 );
 
--- Kopiranje podataka o službenim vozilima u privremenu tablicu i postavljanje 'Napomena za službena vozila'
+# Kopiranje podataka o službenim vozilima u privremenu tablicu i postavljanje 'Napomena za službena vozila'
 INSERT INTO Pregled_službenih_vozila (id, marka, model, registracija, godina_proizvodnje, sluzbeno_vozilo, vlasnik, napomena_službena_vozila)
 SELECT id, marka, model, registracija, godina_proizvodnje, sluzbeno_vozilo, 'Ministarstvo Unutarnjih Poslova' AS vlasnik, 'Ministarstvo Unutarnjih Poslova' AS napomena_službena_vozila
 FROM Vozilo
