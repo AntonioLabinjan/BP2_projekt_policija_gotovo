@@ -340,7 +340,7 @@ DO
 //
 
 DELIMITER ;
-    # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa
+    # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO POTENCIJALNO PRETVORIT U FUNKCIJU
 DELIMITER //
 CREATE PROCEDURE PretraziSlucajevePoOpisu(IN kljucnaRijec TEXT)
 BEGIN
