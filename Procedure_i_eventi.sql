@@ -1,3 +1,4 @@
+/*
 DELIMITER //
 
 CREATE PROCEDURE Dodaj_Novo_Podrucje_Uprave(IN p_naziv VARCHAR(255))
@@ -98,7 +99,7 @@ BEGIN
 END //
 
 DELIMITER ;
-
+*/
 # Procedura za unos novog vozila
 DELIMITER //
 
@@ -125,7 +126,7 @@ BEGIN
 END //
 
 DELIMITER ;
-
+/*
 # Napiši proceduru za dodavanje novog predmeta
 DELIMITER //
 
@@ -289,6 +290,7 @@ BEGIN
 END //
 
 DELIMITER ;
+*/
 # Procedura za unos novog vozila; ukoliko je vozilo službeno, ono će imati id_vlasnik koji će predstavljati službenika koji najviše koristi vozilo, ali postaviti će se napomena da je vlasnik MUP
 
 SELECT * FROM vozilo;
@@ -305,7 +307,7 @@ CREATE PROCEDURE Dodaj_Novo_Vozilo(
     IN p_id_vlasnik INT
 )
 BEGIN
-    -- Dodaj stupac napomena ako već ne postoji
+    # Dodamo stupac napomena ako već ne postoji (ovo naknadno prepravit preko alter table, pa izbacit od tu)
     IF NOT EXISTS (
         SELECT * 
         FROM INFORMATION_SCHEMA.COLUMNS 
@@ -314,11 +316,11 @@ BEGIN
         ALTER TABLE Vozilo ADD COLUMN napomena VARCHAR(255);
     END IF;
     
-    -- Postavi napomenu na 'Vlasnik MUP' ako je vozilo službeno
+    # Postavimo napomenu na 'Vlasnik MUP' ako je vozilo službeno
     IF p_sluzbeno_vozilo = 1 THEN
         SET @napomena = 'Vlasnik MUP';
     ELSE
-        SET @napomena = NULL;  -- Možete postaviti neku drugu vrijednost ako nije službeno vozilo
+        SET @napomena = NULL;  # Ako nije službeno, ne treba nam neka posebna napomena
     END IF;
 
     INSERT INTO Vozilo (marka, model, registracija, godina_proizvodnje, id_vlasnik, napomena)
@@ -349,10 +351,10 @@ END //
 DELIMITER ;
 
 CALL AzurirajPodatkeZatvor();
--- Aktivacija Event Schedulera ako već nije aktivan
+# Aktiviramo Event Scheduler ako već nije aktivan
 SET GLOBAL event_scheduler = ON;
 
--- Stvaranje Eventa
+-- Stvaramo
 DELIMITER //
 
 CREATE EVENT IF NOT EXISTS Dnevno_odbrojavanje
@@ -360,18 +362,19 @@ ON SCHEDULE
     EVERY 1 DAY
     STARTS CURRENT_DATE
 DO
-    CALL AzurirajPodatkeZatvor();
+    CALL AzurirajPodatkeZatvor(); # pretpostavljamo da je osoba zatvorena točno na dan završetka slučaja
 
 //
 
 DELIMITER ;
-    # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO SU SADA 2 POGLEDA I 1 UPIT
+
+# Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO SU SADA 2 POGLEDA I 1 UPIT
 CREATE VIEW Svi_slucajevi AS
 SELECT * FROM Slucaj;
 CREATE VIEW Filtrirani_slucajevi AS
-SELECT * FROM SviSlucajevi
+SELECT * FROM Svi_slucajevi
 WHERE Opis LIKE CONCAT('%', kljucna_rijec, '%');
-SELECT * FROM Filtrirani_slucajevi WHERE kljucnarijec = 'neka_kljucna_rijec';
+SELECT * FROM Filtrirani_slucajevi WHERE kljucna_rijec = 'blabla'; #ovo naravno mijenjamo
 
 
 # Napiši proceduru koja će kreirati novu privremenu tablicu u kojoj će se prikazati svi psi i broj slučajeva na kojima su radili. Zatim će dodati novi stupac tablici pas i u njega upisati "nagrađeni pas" kod svih pasa koji su radili na više od 15 slučajeva 
@@ -398,7 +401,7 @@ DELIMITER ;
 SELECT * FROM Pas;
 CALL Godisnje_nagrađivanje_pasa();
 
-# Napiši sličnu proceduru za godišnje nagrađivanje zaposlenika
+# Napiši sličnu proceduru za godišnje nagrađivanje zaposlenika (ovo je nova procedura po uzoru na gornju)
 DELIMITER //
 CREATE PROCEDURE Godisnje_nagrađivanje_zaposlenika()
 BEGIN
@@ -412,7 +415,7 @@ BEGIN
 
     UPDATE Zaposlenik
     SET Status = 'nagrađeni zaposlenik'
-    WHERE id IN (SELECT id_zaposlenik FROM Temp_Zaposlenici WHERE broj_rijesenih_slucajeva > 2);
+    WHERE id IN (SELECT id_zaposlenik FROM Temp_Zaposlenici WHERE broj_rijesenih_slucajeva > 2); # u praksi bi treba bit veći broj slučajeva za nagradu, ali nemamo ih baš puno u bazi
 
     DROP TEMPORARY TABLE IF EXISTS Temp_Zaposlenici;
 END //
@@ -425,11 +428,11 @@ BEGIN
     DECLARE Datum_pocetka DATE;
     DECLARE Datum_zavrsetka DATE;
     
-    -- Postavimo početni i završni datum za analizu (npr. 20 dana, ali možemo izmjeniti)
+    # Postavimo početni i završni datum za analizu (npr. 20 dana, ali more se izmjeniti)
     SET Datum_pocetka = CURDATE() - INTERVAL 20 DAY;
     SET Datum_zavrsetka = CURDATE();
     
-    SELECT S.ID AS Slucaj_id, S.Naziv AS Naziv_slucaja, S.Status, S.id_voditelj, O.ime_prezime
+    SELECT S.ID AS Slucaj_id, S.Naziv AS Naziv_slucaja, S.Status, S.id_voditelj, O.ime_prezime # moremo dohvaćat i druge atribute, ali ovi mi djeluju najvažnije
     FROM Slucaj S
     JOIN Zaposlenik Z ON S.VoditeljID = Z.id
 JOIN Osoba O ON O.id = Z.id_osoba
@@ -471,6 +474,7 @@ END //
 
 DELIMITER ;
 
+# Svaki izvještaj mora biti povezan za neki slučaj, pa smo kreirali "slučaj" za izdavanje potvrde, da bi ga se moglo referencirat u potvrdi o nekažnjvananju
 INSERT INTO Slucaj (id, naziv, pocetak, zavrsetak, status, opis) VALUES ( 999, 'Izdavanje potvrde', NOW(), NOW()+INTERVAL 1 DAY, 'U tijeku', 'Opis slucaja');
 SELECT * FROM Slucaj;
 
@@ -508,13 +512,14 @@ END //
 DELIMITER ;
 SELECT * FROM Osoba;
 CALL IzmjeniKontaktInformacije (1, 'a@b.com', 091333333);
+
 # Napiši proceduru koja će za određeni slučaj izlistati sve događaje koji su se u njemu dogodili i poredati ih kronološki (OVO JE VIEW)
 CREATE VIEW Pregled_Dogadaji AS
 SELECT ed.Id, ed.opis_dogadaja, ed.datum_vrijeme, ed.id_slucaj
 FROM Evidencija_dogadaja AS ed
 ORDER BY ed.Datum_Vrijeme;
 
-# Napiši PROCEDURU KOJA ZA ARGUMENT PRIMA OZNAKU PSA, A VRAĆA ID, IME i PREZIME VLASNIKA i BROJ SLUČAJEVA U KOJIMA JE PAS SUDJELOVAO
+# Napiši PROCEDURU KOJA ZA ARGUMENT PRIMA OZNAKU PSA, A VRAĆA ID, IME i PREZIME VLASNIKA i BROJ SLUČAJEVA U KOJIMA JE PAS SUDJELOVAO (Ovo je isto VIEW)
 CREATE VIEW Pregled_Pas AS
 SELECT
     O.Id AS Vlasnik_id,
@@ -553,8 +558,31 @@ DELIMITER ;
 SELECT * FROM Kaznjiva_djela;
 CALL izmjeni_kaznu ('Otmica', 4);
 
-#Napiši proceduru koja će dohvaćati slučajeve koji sadrže određeno kazneno djelo i sortirati ih po vrijednosti zapljene silazno
+# Napravi sličnu proceduru za promjenu novčane kazne
+	DELIMITER //
+CREATE PROCEDURE izmjeni_kaznu(IN naziv_djela VARCHAR(255), IN iznos INT)
+BEGIN
+    DECLARE kazna INT;
+    
+    SELECT predvidena_novcana_kazna INTO kazna
+    FROM Kaznjiva_djela
+    WHERE naziv = naziv_djela;
+    
+    IF kazna IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Traženo KD ne postoji u bazi';
+    END IF;
+    
+    SET kazna = kazna + iznos;
+    
+    UPDATE Kaznjiva_djela
+    SET predvidena_novcana_kazna = kazna
+    WHERE naziv = naziv_djela;
+END //
+DELIMITER ;
 
+
+#Napiši proceduru koja će dohvaćati slučajeve koji sadrže određeno kazneno djelo i sortirati ih po vrijednosti zapljene silazno
+# Pretvoreno u pogled
 CREATE VIEW Slucajevi_po_kaznjivom_djelu AS
 SELECT Slucaj.id AS SlucajID, Slucaj.naziv AS NazivSlucaja, Zapljene.Vrijednost AS ZapljenaVrijednost
 FROM Slucaj
@@ -565,14 +593,14 @@ ORDER BY Zapljene.Vrijednost DESC;
 
 SELECT * FROM Slucajevi_po_kaznjivom_djelu WHERE Kaznjiva_djela.naziv = 'naziv_kaznenog_djela'
 
-# Napiši proceduru koja će ispisati sve zaposlenike, imena i prezimena, adrese i brojeve telefona u jednom redu za svakog zaposlenika
 
 # Napiši proceduru koja će ispisati sve slučajeve i za svaki slučaj ispisati voditelja i ukupan iznos zapljena. Ako nema pronađenih slučajeva, neka nas obavijesti o tome
-CREATE VIEW PogledPodaciOSlucajevimaIZapljenama AS
+# Pretvoreno u pogled
+CREATE VIEW Podaci_o_slucajevima_zapljenama AS
 SELECT
-    Slucaj.id AS SlucajID,
-    Osoba.ime_prezime AS VoditeljImePrezime,
-    COALESCE(SUM(Zapljene.Vrijednost), 0) AS UkupanIznosZapljena
+    Slucaj.id AS Slucaj_ID,
+    Osoba.ime_prezime AS Voditelj_ime_prezime,
+    COALESCE(SUM(Zapljene.Vrijednost), 0) AS Ukupan_iznos_zapljena
 FROM
     Slucaj
 JOIN
@@ -582,7 +610,7 @@ JOIN
 LEFT JOIN
     Zapljene ON Slucaj.id = Zapljene.id_slucaj
 GROUP BY
-    Slucaj.id, Osoba.ime_prezime;
+    Slucaj.id, Osoba.ime_prezime; 
 
 
 # Napiši proceduru koja će služiti za unaprijeđenje policijskih službenika na novo radno mjesto. Ako je novo radno mjesto jednako onom radnom mjestu osobe koja im je prije bila nadređena, postaviti će id_nadređeni na NULL
@@ -623,6 +651,7 @@ DELIMITER ;
 SELECT Zaposlenik.*, Radno_mjesto.id FROM Zaposlenik, Radno_mjesto WHERE Zaposlenik.id_radno_mjesto = radno_mjesto.id;
 CALL UnaprijediPolicijskogSluzbenika(1,2);
 # Napravi proceduru koja će provjeravati je li zatvorska kazna istekla 
+# Ova je grda
 CALL ProvjeriIstekZatvorskeKazne();
 DELIMITER //
 
@@ -641,12 +670,12 @@ BEGIN
     WHERE S.status = 'Zavrsen';
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
-    -- Provjerimo postojanje stupca prije dodavanja
+    # Provjerimo dali postoji stupac prije dodavanja
     IF NOT EXISTS (
         SELECT * FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_NAME = 'Osoba' AND COLUMN_NAME = 'obavijest'
     ) THEN
-        -- Dodamo stupac obavijest u tablicu Osoba
+        # Dodamo stupac obavijest u tablicu Osoba
         ALTER TABLE Osoba
         ADD COLUMN obavijest VARCHAR(50);
     END IF;
@@ -661,7 +690,7 @@ BEGIN
             LEAVE read_loop;
         END IF;
 
-        -- Izračunamo ukupnu kaznu za osobu
+        # Izračunamo ukupnu kaznu za osobu
         SET ukupna_kazna = (
             SELECT COALESCE(SUM(K.predvidena_kazna), 0)
             FROM Slucaj S
@@ -670,17 +699,17 @@ BEGIN
             WHERE S.id_pocinitelj = osoba_id
         );
 
-        -- Provjerimo je li datum zavrsetka_slucaja + ukupna_kazna manji od današnjeg datuma
+        # Provjerimo je li datum zavrsetka_slucaja + ukupna_kazna manji od današnjeg datuma
         SET danas = NOW();
         IF DATE_ADD(datum_zavrsetka_slucaja, INTERVAL ukupna_kazna DAY) <= danas THEN
-            -- Istekla je zatvorska kazna, dodaj obavijest u stupac obavijest u tablici Osoba
+            # Datum na koji je osoba trebala biti puštena je manji nego današnji => istekla je zatvorska kazna, dodamo obavijest u stupac obavijest u tablici Osoba
             UPDATE Osoba
             SET obavijest = 'Kazna je istekla'
             WHERE Id = osoba_id;
         END IF;
     END LOOP;
 
-    -- Zatvorimo kursor
+    
     CLOSE cur;
 
 END //
@@ -688,6 +717,7 @@ END //
 DELIMITER ;
 CALL ProvjeriIstekZatvorskeKazne();
 SELECT * FROM Osoba;
+# EVENT KOJI VRTI TU PROCEDURU SVAKIH 1 DAN
 DELIMITER //
 
 CREATE EVENT IF NOT EXISTS `ProvjeraIstekaKazniEvent`
