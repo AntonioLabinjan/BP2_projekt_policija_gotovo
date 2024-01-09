@@ -423,26 +423,24 @@ END //
 DELIMITER ;
 
 # Napiši proceduru koja će generirati izvještaje o slučajevima u zadnjih 20 dana (ovaj broj se može prilagođavati)
-DELIMITER //
-CREATE PROCEDURE IzlistajSlucajeveZaPosljednjih20Dana()
-BEGIN
-    DECLARE Datum_pocetka DATE;
-    DECLARE Datum_zavrsetka DATE;
-    
-    # Postavimo početni i završni datum za analizu (npr. 20 dana, ali more se izmjeniti)
-    SET Datum_pocetka = CURDATE() - INTERVAL 20 DAY;
-    SET Datum_zavrsetka = CURDATE();
-    
-    SELECT S.ID AS Slucaj_id, S.Naziv AS Naziv_slucaja, S.Status, S.id_voditelj, O.ime_prezime # moremo dohvaćat i druge atribute, ali ovi mi djeluju najvažnije
-    FROM Slucaj S
-    JOIN Zaposlenik Z ON S.VoditeljID = Z.id
-JOIN Osoba O ON O.id = Z.id_osoba
-    WHERE S.Pocetak BETWEEN Datum_pocetka AND Datum_zavrsetka;
-END;
-//
-DELIMITER ;
-
-
+CREATE VIEW Slucajevi_u_posljednjih_n_dana AS
+SELECT 
+    S.ID AS id_slucaj,
+    S.Naziv AS Naziv_slucaja,
+    S.Status,
+    S.id_voditelj,
+    O.ime_prezime AS ime_i_prezime_voditelja
+FROM 
+    Slucaj S
+JOIN 
+    Zaposlenik Z ON S.id_voditelj = Z.id
+JOIN 
+    Osoba O ON O.id = Z.id_osoba
+WHERE 
+    S.Pocetak BETWEEN CURDATE() - INTERVAL 10000 DAY AND CURDATE(); # OVAJ INTERVAL MIJENJAMO PREMA POTREBI
+DROP VIEW Slucajevi_u_posljednjih_n_dana;
+SELECT * FROM Slucajevi_u_posljednjih_n_dana;
+SELECT * FROM slucaj;
 # Napiši proceduru koja će za određenu osobu kreirati potvrdu o nekažnjavanju. To će napraviti samo u slučaju da osoba stvarno nije evidentirana niti u jednom slučaju kao počinitelj. Ukoliko je osoba kažnjavana i za to ćemo dobiti odgovarajuću obavijest. Također,ako uspješno izdamo potvrdu, neka se prikaže i datum izdavanja
 # Neka id_slucaj za izvještaj bude 999 kako ne bismo morali mijenjati shemu baze
 DROP PROCEDURE ProvjeriNekažnjavanje;
