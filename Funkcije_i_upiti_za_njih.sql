@@ -183,25 +183,39 @@ END //
 
 
 # u5)Koristeći funkciju prikažite vozila koja se pojavljuju iznad prosjeka (u iznadprosječnom broju)
-CREATE TEMPORARY TABLE Prosjek_Pojavljivanja AS
-SELECT AVG(count) AS Prosjek
-FROM (
-    SELECT COUNT(*) AS count
-    FROM Slucaj
-    INNER JOIN Vozilo ON Slucaj.id_pocinitelj = Vozilo.id_vlasnik
-    GROUP BY Vozilo.Registracija
-) AS Podupit1;
-
-SELECT V.Registracija, Provjera_vozila(V.Registracija) AS StatusVozila
-FROM Vozilo V
+CREATE VIEW View_Provjera_Vozila AS
+SELECT 
+    V.Registracija, 
+    Provjera_vozila(V.Registracija) AS StatusVozila
+FROM 
+    Vozilo V
 INNER JOIN (
-    SELECT Vozilo.Registracija, COUNT(*) AS count
-    FROM Slucaj
-    INNER JOIN Vozilo ON Slucaj.id_pocinitelj = Vozilo.id_vlasnik
-    GROUP BY Vozilo.Registracija
-) AS Podupit2 ON V.Registracija = Podupit2.Registracija
-WHERE Podupit2.count > (SELECT Prosjek FROM Prosjek_Pojavljivanja);
-
+    SELECT 
+        Vozilo.Registracija, 
+        COUNT(*) AS count
+    FROM 
+        Slucaj
+    INNER JOIN 
+        Vozilo ON Slucaj.id_pocinitelj = Vozilo.id_vlasnik
+    GROUP BY 
+        Vozilo.Registracija
+) AS Podupit ON V.Registracija = Podupit.Registracija
+WHERE 
+    Podupit.count > (
+        SELECT 
+            AVG(count) AS Prosjek
+        FROM (
+            SELECT 
+                COUNT(*) AS count
+            FROM 
+                Slucaj
+            INNER JOIN 
+                Vozilo ON Slucaj.id_pocinitelj = Vozilo.id_vlasnik
+            GROUP BY 
+                Vozilo.Registracija
+        ) AS Podupit1
+    );
+SELECT * FROM View_Provjera_Vozila; # Nema iznadprosječnih vozila :)...samo 1 se pojavljuje u slučajevima
 
 
 # 6)Funkcija koja za argument prima id podrucja uprave i vraća broj mjesta u tom području te naziv svih mjesta u 1 stringu
