@@ -337,6 +337,7 @@ SELECT * FROM vozilo;
 # Napiši proceduru koja će svim zatvorenicima koji su još u zatvoru (datum odlaska iz zgrade zatvora im je NULL) dodati novi stupac sa brojem dana u zatvoru koji će dobiti tako da računa broj dana o dana dolaska u zgradu do današnjeg dana
 # Ubacit scheduled dnevno izvođenje procedure
 DROP PROCEDURE AzurirajPodatkeZatvor;
+ALTER TABLE Osoba ADD COLUMN broj_dana_u_zatvoru INT;
 DELIMITER //
 
 CREATE PROCEDURE AzurirajPodatkeZatvor()
