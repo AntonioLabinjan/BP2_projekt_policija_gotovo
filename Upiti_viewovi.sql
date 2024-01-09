@@ -435,3 +435,47 @@ JOIN
 WHERE 
     S.Pocetak BETWEEN CURDATE() - INTERVAL 10000 DAY AND CURDATE(); # OVAJ INTERVAL MIJENJAMO PREMA POTREBI
 ##############################################################################################################################################
+# 23) Napiši pogled koja će dohvaćati slučajeve koji sadrže određeno kazneno djelo i sortirati ih po vrijednosti zapljene silazno
+CREATE VIEW Slucajevi_po_kaznjivom_djelu AS
+SELECT
+    Slucaj.id AS SlucajID,
+    Slucaj.naziv AS NazivSlucaja,
+    ukupna_vrijednost_zapljena AS UkupneZapljene
+FROM
+    Slucaj
+JOIN
+    Kaznjiva_djela_u_slucaju ON Slucaj.id = Kaznjiva_djela_u_slucaju.id_slucaj
+JOIN
+    Kaznjiva_djela ON Kaznjiva_djela_u_slucaju.id_kaznjivo_djelo = Kaznjiva_djela.id
+LEFT JOIN
+    Zapljene ON Slucaj.id = Zapljene.id_slucaj
+GROUP BY
+    Slucaj.id, Slucaj.naziv
+ORDER BY
+    UkupneZapljene DESC;
+
+
+DROP VIEW Slucajevi_po_kaznjivom_djelu;
+SELECT * FROM Slucajevi_po_kaznjivom_djelu WHERE NazivSlucaja LIKE('%krađa%');
+SELECT * FROM Slucaj WHERE Naziv LIKE('%krađa%');
+select * from zapljene WHERE id_slucaj  = 4;
+# 24) Napiši pogled koja će ispisati sve slučajeve i za svaki slučaj ispisati voditelja i ukupan iznos zapljena. Ako nema pronađenih slučajeva, neka nas obavijesti o tome
+# Pretvoreno u pogled
+CREATE VIEW Podaci_o_slucajevima_zapljenama AS
+
+SELECT
+    Slucaj.id AS Slucaj_ID,
+    Osoba.ime_prezime AS Voditelj_ime_prezime,
+    COALESCE(SUM(Zapljene.Vrijednost), 0) AS Ukupan_iznos_zapljena
+FROM
+    Slucaj
+JOIN
+    Zaposlenik ON Slucaj.id_voditelj = Zaposlenik.id
+JOIN
+    Osoba ON Zaposlenik.id_osoba = Osoba.id
+LEFT JOIN
+    Zapljene ON Slucaj.id = Zapljene.id_slucaj
+GROUP BY
+    Slucaj.id, Osoba.ime_prezime;
+
+SELECT * FROM Podaci_o_slucajevima_zapljenama;
