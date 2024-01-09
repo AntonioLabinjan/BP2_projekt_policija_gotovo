@@ -479,3 +479,22 @@ GROUP BY
     Slucaj.id, Osoba.ime_prezime;
 
 SELECT * FROM Podaci_o_slucajevima_zapljenama;
+# 25) Napravi pogled koji će prikazati slučajeve koji su počeli u zadnjih n dana
+CREATE VIEW Slucajevi_u_posljednjih_n_dana AS
+SELECT 
+    S.ID AS id_slucaj,
+    S.Naziv AS Naziv_slucaja,
+    S.Status,
+    S.id_voditelj,
+    O.ime_prezime AS ime_i_prezime_voditelja
+FROM 
+    Slucaj S
+JOIN 
+    Zaposlenik Z ON S.id_voditelj = Z.id
+JOIN 
+    Osoba O ON O.id = Z.id_osoba
+WHERE 
+    S.Pocetak BETWEEN CURDATE() - INTERVAL 10000 DAY AND CURDATE(); # OVAJ INTERVAL MIJENJAMO PREMA POTREBI
+DROP VIEW Slucajevi_u_posljednjih_n_dana;
+SELECT * FROM Slucajevi_u_posljednjih_n_dana;
+SELECT * FROM slucaj;
