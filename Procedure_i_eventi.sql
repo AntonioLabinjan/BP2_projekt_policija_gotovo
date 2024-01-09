@@ -373,10 +373,13 @@ DELIMITER ;
 # Napiši proceduru koja će omogućiti da pretražujemo slučajeve preko neke ključne riječi iz opisa # OVO SU SADA 2 POGLEDA I 1 UPIT
 CREATE VIEW Svi_slucajevi AS
 SELECT * FROM Slucaj;
+
 CREATE VIEW Filtrirani_slucajevi AS
 SELECT * FROM Svi_slucajevi
-WHERE Opis LIKE CONCAT('%', kljucna_rijec, '%');
-SELECT * FROM Filtrirani_slucajevi WHERE kljucna_rijec = 'blabla'; #ovo naravno mijenjamo
+WHERE Opis LIKE CONCAT('%', 'tvoja_kljucna_rijec', '%');
+
+SELECT * FROM Filtrirani_slucajevi;
+
 
 
 # Napiši proceduru koja će kreirati novu privremenu tablicu u kojoj će se prikazati svi psi i broj slučajeva na kojima su radili. Zatim će dodati novi stupac tablici pas i u njega upisati "nagrađeni pas" kod svih pasa koji su radili na više od 15 slučajeva 
@@ -384,7 +387,7 @@ DELIMITER //
 CREATE PROCEDURE Godisnje_nagrađivanje_pasa()
 BEGIN
     
-    CREATE TEMPORARY TABLE Temp_Psi (id_pas	INT, BrojSlucajeva INT);
+    CREATE TEMPORARY TABLE IF NOT EXISTS Temp_Psi (id_pas	INT, BrojSlucajeva INT);
 
     
     INSERT INTO Temp_Psi (id_pas, BrojSlucajeva)
