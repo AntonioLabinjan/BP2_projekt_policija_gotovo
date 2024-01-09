@@ -385,3 +385,173 @@ BEGIN
 END // 
 DELIMITER ;
 ###############################################################################################################################################
+DROP PROCEDURE IF EXISTS Provjera_voditelja_po_pocinitelju;
+DELIMITER //
+
+CREATE PROCEDURE Provjera_voditelja_po_pocinitelju(
+    IN p_id_voditelj INT,
+    IN p_id_pocinitelj INT,
+    OUT p_poruka VARCHAR(1999)
+)
+BEGIN
+    DECLARE broj_neaktivnih_slucajeva INT;
+
+    SELECT 
+        COUNT(CASE WHEN status = 'Riješen' THEN 1 END) INTO broj_neaktivnih_slucajeva
+    FROM Slucaj
+    WHERE id_pocinitelj = p_id_pocinitelj AND id_voditelj = p_id_voditelj;
+
+    IF broj_neaktivnih_slucajeva > 0 THEN
+        SET p_poruka = 'Voditelj ne može voditi nove slučajeve protiv istog počinitelja jer postoji barem jedan riješen slučaj.';
+    ELSE
+        SET p_poruka = 'Provjera uspješna, slučaj može biti otvoren.';
+    END IF;
+END //
+
+DELIMITER ;
+# OVO DELA JEEEj
+#SELECT id_voditelj, id_pocinitelj FROM slucaj;
+#CALL Provjera_voditelja_po_pocinitelju(9,26,@poruka);
+#CALL Provjera_voditelja_po_pocinitelju(5, 7, @poruka);
+#SELECT @poruka ;
+#### Zapakirano u triger
+DELIMITER //
+
+CREATE TRIGGER BI_Slucaj_procedura
+BEFORE INSERT ON Slucaj
+FOR EACH ROW
+BEGIN
+    DECLARE poruka VARCHAR(1999);
+    CALL Provjera_voditelja_po_pocinitelju(NEW.id_voditelj, NEW.id_pocinitelj, poruka);
+    IF poruka != 'Provjera uspješna, slučaj može biti otvoren.' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = poruka;
+    END IF;
+END;
+
+//
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE PROCEDURE PostaviNaPoligraf(p_id_pocinitelj INT)
+BEGIN
+    DECLARE broj_poligrafa INT;
+    
+    -- Broj poligrafa koje je počinitelj već prošao
+    SELECT COUNT(*) INTO broj_poligrafa
+    FROM Sui_slucaj
+    WHERE id_slucaj IN (SELECT id FROM Slucaj WHERE id_pocinitelj = p_id_pocinitelj);
+
+    -- Ako počinitelj nije prošao barem dva puta poligraf, dodajte ga
+    WHILE broj_poligrafa < 2 DO
+        INSERT INTO Sui_slucaj (id_sui, id_slucaj)
+        VALUES (1, (SELECT id FROM Slucaj WHERE id_pocinitelj = p_id_pocinitelj LIMIT 1));
+
+        SET broj_poligrafa = broj_poligrafa + 1;
+    END WHILE;
+END;
+
+
+DELIMITER ;
+-- Stvaranje procedura za provjeru kazne i postavljanje počinitelja na poligraf
+DELIMITER //
+
+CREATE PROCEDURE Provjera_kazna_poligraf(
+    IN p_id_pocinitelj INT,
+    IN p_status VARCHAR(20)
+)
+BEGIN
+    DECLARE ukupna_kazna INT;
+    
+    -- Izračunaj ukupnu kaznu za počinitelja
+    SELECT SUM(kd.predvidena_kazna) INTO ukupna_kazna
+    FROM Kaznjiva_djela_u_slucaju kds
+    JOIN Kaznjiva_djela kd ON kds.id_kaznjivo_djelo = kd.id
+    WHERE kds.id_slucaj IN (SELECT id FROM Slucaj WHERE id_pocinitelj = p_id_pocinitelj);
+
+    -- Provjeri uvjete
+    IF ukupna_kazna < 25 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ukupna kazna počinitelju manja od 25 godina. Počinitelj ne mora proći poligraf barem dva puta.';
+    ELSE
+        CALL PostaviNaPoligraf(p_id_pocinitelj);
+    END IF;
+END;
+
+DELIMITER ;
+
+
+
+-- Stvaranje okidača koji poziva proceduru
+DELIMITER //
+CREATE TRIGGER Bi_slucaj_Provjera_Kazne
+BEFORE INSERT  ON Slucaj
+FOR EACH ROW
+BEGIN
+    -- Pozovi proceduru za provjeru kazne i postavljanje počinitelja na poligraf
+    CALL Provjera_kazna_poligraf(NEW.id_pocinitelj, NEW.status);
+END;
+
+DELIMITER ;
+
+#4. Zaposlenik ne može mijenjati id_zgrada u kojoj radi izvan Podrucje_uprave u kojoj je trenutno zaposlen.
+#   Dakle, može mijenjati id_zgrada sve dok se time ne mijenja Podrucje_uprave zaposlenika. To je opet okidač (UPDATE) ali provjeru zapakirajte u proceduru
+SELECT * FROM mjesto;
+SELECT id_zgrada FROM zaposlenik; 
+DELIMITER //
+
+CREATE PROCEDURE ProvjeraPromjeneZgrade(
+    IN p_id_zaposlenik INT,
+    IN p_nova_zgrada INT,
+    OUT p_poruka VARCHAR(255)
+)
+BEGIN
+    DECLARE trenutno_podrucje_uprave INT;
+    DECLARE novo_podrucje_uprave INT;
+
+    -- Dohvati trenutno podrucje uprave zaposlenika
+    SELECT M.id_podrucje_uprave INTO trenutno_podrucje_uprave
+    FROM Zaposlenik Z
+    JOIN Zgrada ZG ON Z.id_zgrada = ZG.id
+    JOIN Mjesto M ON ZG.id_mjesto = M.id
+    WHERE Z.id = p_id_zaposlenik;
+
+    -- Dohvati podrucje uprave za novu zgradu
+    SELECT id_podrucje_uprave INTO novo_podrucje_uprave
+    FROM Zgrada
+    WHERE id = p_nova_zgrada;
+
+    -- Provjeri jesu li podrucja uprave ista
+    IF trenutno_podrucje_uprave != novo_podrucje_uprave THEN
+        SET p_poruka = 'Zaposlenik ne može mijenjati zgradu izvan trenutnog podrucja uprave.';
+    ELSE
+        SET p_poruka = 'Provjera uspješna, zaposlenik može promijeniti zgradu.';
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER ProvjeraPromjeneZgrade_Trigger
+BEFORE UPDATE ON Zaposlenik
+FOR EACH ROW
+BEGIN
+    DECLARE poruka VARCHAR(255);
+
+    -- Pozovi proceduru za provjeru
+    CALL ProvjeraPromjeneZgrade(NEW.id, NEW.id_zgrada, poruka);
+
+    -- Ako je poruka postavljena, prekini izvršavanje upita i vrati poruku kao grešku
+    IF poruka = 'Zaposlenik ne može mijenjati zgradu izvan trenutnog podrucja uprave.' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = poruka;
+    ELSE
+        -- Ako nema poruke, obavi promjenu zgrade
+        UPDATE Zaposlenik SET id_zgrada = NEW.id_zgrada WHERE id = NEW.id;
+    END IF;
+END;
+
+DELIMITER ;
