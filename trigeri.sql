@@ -353,7 +353,7 @@ DELIMITER ;
  
 # 19) Triger koji provjerava je li email dobre strukture
 DELIMITER //
-CREATE TRIGGER bi_osoba
+CREATE TRIGGER bi_osoba_mail
 BEFORE INSERT ON osoba
 FOR EACH ROW
 BEGIN
