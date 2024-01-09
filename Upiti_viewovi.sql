@@ -418,5 +418,20 @@ JOIN Slucaj S ON ED.id_slucaj = S.Id
 JOIN Kaznjiva_Djela_u_Slucaju KDS ON S.Id = KDS.id_slucaj
 JOIN Kaznjiva_Djela KD ON KDS.id_kaznjivo_djelo = KD.Id;
 
-
+# 22) Napravi pogled koji će dohvaćati sve slučajeve u posljednjih N dna (stavljeno je 10000)
+CREATE VIEW Slucajevi_u_posljednjih_n_dana AS
+SELECT 
+    S.ID AS id_slucaj,
+    S.Naziv AS Naziv_slucaja,
+    S.Status,
+    S.id_voditelj,
+    O.ime_prezime AS ime_i_prezime_voditelja
+FROM 
+    Slucaj S
+JOIN 
+    Zaposlenik Z ON S.id_voditelj = Z.id
+JOIN 
+    Osoba O ON O.id = Z.id_osoba
+WHERE 
+    S.Pocetak BETWEEN CURDATE() - INTERVAL 10000 DAY AND CURDATE(); # OVAJ INTERVAL MIJENJAMO PREMA POTREBI
 ##############################################################################################################################################
