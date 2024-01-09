@@ -368,14 +368,16 @@ DELIMITER ;
 # u9)upit koji će za svakog zaposlenika pozvati funkciju uspješnosti i vratiti rezultat, osim ako nije vodio slučajeve, onda će vratiti odgovarajuću obavijest
     SELECT
     Z.Id AS 'ID zaposlenika',
-    Z.Ime_Prezime AS 'Ime i prezime zaposlenika',
+    O.Ime_Prezime AS 'Ime i prezime zaposlenika',
     CASE
         WHEN (SELECT COUNT(*) FROM slucaj WHERE id_voditelj = Z.Id) > 0
         THEN zaposlenik_slucaj(Z.Id)
         ELSE 'Zaposlenik nije vodio slučajeve'
     END AS 'Uspješnost'
 FROM
-    Zaposlenik Z;
+    Zaposlenik Z
+JOIN
+    Osoba O ON Z.id_osoba = O.id;
 
 -- 11)Napiši funkciju koja će za osobu definiranu parametrom p_id_osoba vratiti "DA" ako je barem jednom bila oštećenik u nekom slučaju, a u 
 -- protivnom će vratiti "NE."
